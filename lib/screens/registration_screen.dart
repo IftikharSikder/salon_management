@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:salon_management/models/customer_model.dart';
 import '../controllers/registration_controller.dart';
 import '../widgets/personal_info_widget.dart';
 import '../widgets/services_widget.dart';

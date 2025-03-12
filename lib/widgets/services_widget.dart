@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/registration_controller.dart';
 import '../controllers/registration_controller.dart' as service_models;
+import '../models/service_model.dart' as service_models;
 
 class ServicesWidget extends StatelessWidget {
   final RegistrationController controller;

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:salon_management/models/customer_model.dart';
+
+import '../models/service_model.dart';
 
 
 class RegistrationController extends GetxController {
@@ -80,7 +83,7 @@ class RegistrationController extends GetxController {
         String phone = customerData['phone'] ?? '';
 
         if (phone.contains(query)) {
-          searchResults.add(Customer.fromJson({...customerData, 'id': doc.id}));
+          searchResults.add(Customer.fromJson({...customerData, 'id': customerData['id'] ?? ''}));
         }
       }
       isLoading.value = false;
@@ -103,7 +106,6 @@ class RegistrationController extends GetxController {
     showSearch.value = false;
   }
 
-// In registration_controller.dart
   void setGender(String gender) {
     print("Setting gender from '${selectedGender.value}' to '$gender'");
     selectedGender.value = gender;
@@ -213,6 +215,89 @@ class RegistrationController extends GetxController {
     totalAmount.value = 0.0;
   }
 
+  // Check if customer exists by phone number
+  Future<Customer?> checkCustomerExists(String phone) async {
+    try {
+      QuerySnapshot snapshot = await _firestore.collection('customer')
+          .where('phone', isEqualTo: phone)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        var doc = snapshot.docs.first;
+        var data = doc.data() as Map<String, dynamic>;
+        // Make sure we use the 'id' field from the customer document
+        return Customer.fromJson({
+          ...data,
+          'id': data['id'] ?? '' // Use the stored numeric ID, not the document ID
+        });
+      }
+      return null;
+    } catch (e) {
+      print('Error checking if customer exists: $e');
+      return null;
+    }
+  }
+
+  // Generate next customer ID
+  Future<String> getNextCustomerId() async {
+    try {
+      // Get all customers sorted by numeric ID in descending order
+      QuerySnapshot snapshot = await _firestore.collection('customer')
+          .orderBy('id', descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return '1'; // First customer
+      }
+
+      // Get the highest ID and increment by 1
+      var highestDoc = snapshot.docs.first;
+      var data = highestDoc.data() as Map<String, dynamic>;
+      var highestId = data['id'];
+
+      int nextId;
+      if (highestId is String) {
+        nextId = int.tryParse(highestId) ?? 0;
+      } else if (highestId is int) {
+        nextId = highestId;
+      } else {
+        nextId = 0;
+      }
+
+      return (nextId + 1).toString();
+    } catch (e) {
+      print('Error generating next customer ID: $e');
+      // Fallback to timestamp-based ID if we can't determine the next ID
+      return DateTime.now().millisecondsSinceEpoch.toString();
+    }
+  }
+
+  // Add services taken to firestore
+  Future<void> addServicesTaken(String customerId) async {
+    try {
+      // Create a comma-separated list of service names
+      String servicesList = selectedServices
+          .map((service) => service.name)
+          .join(', ');
+
+      print('Adding services taken for customer ID: $customerId');
+
+      // Add record to services_taken collection with the customerId in the 'id' field
+      await _firestore.collection('services_taken').add({
+        'id': customerId, // This should be the numeric customer ID
+        't_cost': totalAmount.value,
+        'services': servicesList,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      print('Services taken added successfully for customer: $customerId');
+    } catch (e) {
+      print('Error adding services taken: $e');
+      throw e; // Re-throw to handle in calling function
+    }
+  }
+
   Future<void> bookAppointment() async {
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
@@ -231,28 +316,54 @@ class RegistrationController extends GetxController {
     isLoading.value = true;
 
     try {
-      // If customer already exists, update their info
-      if (customer.value != null) {
-        await _firestore.collection('customer').doc(customer.value!.id).update({
-          'name': nameController.text,
-          'email': emailController.text,
-          'phone': phoneController.text,
-          'address': addressController.text,
-          'gender': selectedGender.value,
-        });
-      } else {
-        // Create new customer
-        DocumentReference docRef = await _firestore.collection('customer').add({
-          'name': nameController.text,
-          'email': emailController.text,
-          'phone': phoneController.text,
-          'address': addressController.text,
-          'gender': selectedGender.value,
-        });
+      String customerId;
 
-        // After creating customer, you could create an appointment document as well
-        // For simplicity, I'm not implementing that part
+      // Check if customer exists by phone number
+      Customer? existingCustomer = await checkCustomerExists(phoneController.text);
+
+      if (existingCustomer != null) {
+        // Customer exists, update their info
+        customerId = existingCustomer.id;
+
+        // We need to find the Firestore document ID using the customer ID field
+        QuerySnapshot snapshot = await _firestore.collection('customer')
+            .where('id', isEqualTo: customerId)
+            .limit(1)
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          String docId = snapshot.docs.first.id;
+          await _firestore.collection('customer').doc(docId).update({
+            'name': nameController.text,
+            'email': emailController.text,
+            'phone': phoneController.text,
+            'address': addressController.text,
+            'gender': selectedGender.value,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+          print('Updated existing customer with ID: $customerId (doc: $docId)');
+        } else {
+          print('Error: Could not find document for customer ID: $customerId');
+        }
+      } else {
+        // Customer doesn't exist, create new with sequential ID
+        String nextId = await getNextCustomerId();
+        customerId = nextId;
+
+        await _firestore.collection('customer').add({
+          'id': nextId, // Store the sequential numeric ID as a field
+          'name': nameController.text,
+          'email': emailController.text,
+          'phone': phoneController.text,
+          'address': addressController.text,
+          'gender': selectedGender.value,
+          'created_at': FieldValue.serverTimestamp(),
+        });
+        print('Created new customer with ID: $nextId');
       }
+
+      // Add services taken record with the numeric customer ID
+      await addServicesTaken(customerId);
 
       Get.snackbar(
         'Success',
@@ -261,7 +372,6 @@ class RegistrationController extends GetxController {
       );
 
       resetForm();
-      isLoading.value = false;
     } catch (e) {
       print('Error booking appointment: $e');
       Get.snackbar(
@@ -269,52 +379,8 @@ class RegistrationController extends GetxController {
         'Failed to book appointment: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
+    } finally {
       isLoading.value = false;
     }
   }
-}
-
-// lib/models/customer_model.dart
-class Customer {
-  final String id;
-  final String name;
-  final String email;
-  final String phone;
-  final String address;
-  final String gender;
-
-  Customer({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.address,
-    required this.gender,
-  });
-
-  factory Customer.fromJson(Map<String, dynamic> json) {
-    return Customer(
-      id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      address: json['address'] ?? '',
-      gender: json['gender'] ?? '',
-    );
-  }
-}
-
-// lib/models/service_model.dart
-class Service {
-  final String id;
-  final String name;
-  final double price;
-  bool isSelected;
-
-  Service({
-    required this.id,
-    required this.name,
-    required this.price,
-    this.isSelected = false,
-  });
 }
