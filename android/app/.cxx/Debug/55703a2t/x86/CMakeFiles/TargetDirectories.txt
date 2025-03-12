@@ -1,0 +1,2 @@
+D:/Saloon-Management/android/app/.cxx/Debug/55703a2t/x86/CMakeFiles/edit_cache.dir
+D:/Saloon-Management/android/app/.cxx/Debug/55703a2t/x86/CMakeFiles/rebuild_cache.dir
