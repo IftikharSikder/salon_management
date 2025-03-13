@@ -6,11 +6,10 @@ import '../models/service_model.dart' as service_models;
 class ServicesWidget extends StatelessWidget {
   final RegistrationController controller;
 
-  ServicesWidget({required this.controller});
+  const ServicesWidget({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    print("Building ServicesWidget with ${controller.filteredServices.length} services");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,7 +33,7 @@ class ServicesWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 1,
                 blurRadius: 4,
                 offset: Offset(0, 2),
