@@ -91,7 +91,7 @@ class RegistrationController extends GetxController {
       isLoading.value = false;
     })
         .catchError((error) {
-      print("Error searching customers: $error");
+
       isLoading.value = false;
     });
   }
@@ -109,13 +109,11 @@ class RegistrationController extends GetxController {
   }
 
   void setGender(String gender) {
-    print("Setting gender from '${selectedGender.value}' to '$gender'");
     selectedGender.value = gender;
     updateServicesByGender();
   }
 
   void updateServicesByGender() {
-    print("Updating services for gender: ${selectedGender.value}");
 
     filteredServices.clear();
     selectedServices.clear();
@@ -129,7 +127,6 @@ class RegistrationController extends GetxController {
         isSelected: false,
       )).toList();
 
-      print("Male services assigned: ${filteredServices.length}");
     } else if (selectedGender.value.toLowerCase() == 'female') {
       filteredServices.value = femaleServices.map((service) => Service(
         id: service.id,
@@ -138,7 +135,6 @@ class RegistrationController extends GetxController {
         isSelected: false,
       )).toList();
 
-      print("Female services assigned: ${filteredServices.length}");
     }
   }
 
@@ -171,38 +167,26 @@ class RegistrationController extends GetxController {
 
       isLoading.value = false;
     } catch (e) {
-      print('Error fetching services: $e');
       isLoading.value = false;
     }
   }
 
   void toggleService(Service service) {
-    print("Attempting to toggle service: ${service.id} - ${service.name}");
 
-    // Find the service in the filteredServices list
     int index = filteredServices.indexWhere((s) => s.id == service.id);
     if (index >= 0) {
-      // Toggle its selection state
       filteredServices[index].isSelected = !filteredServices[index].isSelected;
 
-      // Clear the selectedServices list
       selectedServices.clear();
 
-      // Rebuild selectedServices with all currently selected services
-      // This ensures both lists stay in sync
       for (var s in filteredServices) {
         if (s.isSelected) {
           selectedServices.add(s);
         }
       }
 
-      // Calculate total
       calculateTotal();
 
-      // Debug print statements
-      print("Selected services count: ${selectedServices.length}");
-      selectedServices.forEach((s) => print("  - ${s.name}: \$${s.price}"));
-      print("Total amount: \$${totalAmount.value}");
     }
   }
 
@@ -241,7 +225,6 @@ class RegistrationController extends GetxController {
       }
       return null;
     } catch (e) {
-      print('Error checking if customer exists: $e');
       return null;
     }
   }
@@ -272,7 +255,6 @@ class RegistrationController extends GetxController {
 
       return (nextId + 1).toString();
     } catch (e) {
-      print('Error generating next customer ID: $e');
       return DateTime.now().millisecondsSinceEpoch.toString();
     }
   }
@@ -283,8 +265,6 @@ class RegistrationController extends GetxController {
           .map((service) => service.name)
           .join(', ');
 
-      print('Adding services taken for customer ID: $customerId');
-
       await _firestore.collection('services_taken').add({
         'id': customerId,
         't_cost': totalAmount.value,
@@ -292,10 +272,8 @@ class RegistrationController extends GetxController {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      print('Services taken added successfully for customer: $customerId');
     } catch (e) {
-      print('Error adding services taken: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -319,7 +297,7 @@ class RegistrationController extends GetxController {
         'Error',
         errorMessage,
         snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.purple.withValues(alpha:.8),
+        backgroundColor: Color(0xFFE91E63),
         colorText: Colors.white
       );
       return;
@@ -350,9 +328,7 @@ class RegistrationController extends GetxController {
             'gender': selectedGender.value,
             'updated_at': FieldValue.serverTimestamp(),
           });
-          print('Updated existing customer with ID: $customerId (doc: $docId)');
         } else {
-          print('Error: Could not find document for customer ID: $customerId');
         }
       } else {
         String nextId = await getNextCustomerId();
@@ -367,7 +343,6 @@ class RegistrationController extends GetxController {
           'gender': selectedGender.value,
           'created_at': FieldValue.serverTimestamp(),
         });
-        print('Created new customer with ID: $nextId');
       }
 
       await addServicesTaken(customerId);
@@ -375,16 +350,20 @@ class RegistrationController extends GetxController {
       Get.snackbar(
         'Success',
         'Appointment booked successfully',
-        snackPosition: SnackPosition.BOTTOM,
+         snackPosition: SnackPosition.TOP, backgroundColor: Color(0xFFE91E63),
+          colorText: Colors.white
+
+
       );
 
       resetForm();
     } catch (e) {
-      print('Error booking appointment: $e');
       Get.snackbar(
         'Error',
         'Failed to book appointment: $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
+          backgroundColor: Color(0xFFE91E63),
+          colorText: Colors.white
       );
     } finally {
       isLoading.value = false;

@@ -54,7 +54,7 @@ class RegistrationScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   image: DecorationImage(
-                    image: NetworkImage("https://img.freepik.com/premium-photo/clean-modern-hair-salon-with-white-furniture-woodpaneled-wall_36682-102642.jpg?semt=ais_hybrid"),
+                    image: AssetImage("assets/Salon_Image.png"),
                     fit: BoxFit.cover,
                   ),
                 ),
