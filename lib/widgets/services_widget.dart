@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/registration_controller.dart';
-import '../controllers/registration_controller.dart' as service_models;
 import '../models/service_model.dart' as service_models;
 
 class ServicesWidget extends StatelessWidget {
@@ -80,6 +79,7 @@ class ServicesWidget extends StatelessWidget {
     }
 
     return CheckboxListTile(
+      controlAffinity: ListTileControlAffinity.leading, // Move checkbox to the left
       title: Row(
         children: [
           Icon(serviceIcon, color: Color(0xFFE91E63), size: 20),
@@ -87,7 +87,7 @@ class ServicesWidget extends StatelessWidget {
           Text(service.name),
         ],
       ),
-      secondary: Text(
+      secondary: Text(  // Use secondary for the trailing widget in CheckboxListTile
         '\$${service.price.toStringAsFixed(0)}',
         style: TextStyle(
           fontWeight: FontWeight.bold,

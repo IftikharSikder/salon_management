@@ -13,6 +13,7 @@ class RegistrationController extends GetxController {
   var showSearch = false.obs;
   var searchQuery = ''.obs;
   var searchFocusNode = FocusNode();
+  RxBool isSearchPage = false.obs;
 
   var customer = Rx<Customer?>(null);
   var maleServices = <Service>[].obs;
@@ -28,6 +29,8 @@ class RegistrationController extends GetxController {
   var phoneController = TextEditingController();
   var addressController = TextEditingController();
   var selectedGender = "".obs;
+
+  var phoneNumber ="".obs;
 
   @override
   void onInit() {
@@ -181,18 +184,31 @@ class RegistrationController extends GetxController {
 
   void toggleService(Service service) {
     print("Attempting to toggle service: ${service.id} - ${service.name}");
+
+    // Find the service in the filteredServices list
     int index = filteredServices.indexWhere((s) => s.id == service.id);
     if (index >= 0) {
+      // Toggle its selection state
       filteredServices[index].isSelected = !filteredServices[index].isSelected;
 
-      if (filteredServices[index].isSelected) {
-        selectedServices.add(filteredServices[index]);
-      } else {
-        selectedServices.removeWhere((s) => s.id == service.id);
+      // Clear the selectedServices list
+      selectedServices.clear();
+
+      // Rebuild selectedServices with all currently selected services
+      // This ensures both lists stay in sync
+      for (var s in filteredServices) {
+        if (s.isSelected) {
+          selectedServices.add(s);
+        }
       }
 
       // Calculate total
       calculateTotal();
+
+      // Debug print statements
+      print("Selected services count: ${selectedServices.length}");
+      selectedServices.forEach((s) => print("  - ${s.name}: \$${s.price}"));
+      print("Total amount: \$${totalAmount.value}");
     }
   }
 
@@ -299,16 +315,36 @@ class RegistrationController extends GetxController {
   }
 
   Future<void> bookAppointment() async {
+    print("Booking appointment with:===============================================================================");
+    print("Name: ${nameController.text}");
+    print("Email: ${emailController.text}");
+    print("Phone: ${phoneNumber.value}");
+    print("Address: ${addressController.text}");
+    print("Gender: ${selectedGender.value}");
+    print("Selected services: ${selectedServices.length}");
+
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
-        phoneController.text.isEmpty ||
+        phoneNumber.value.isEmpty ||
         addressController.text.isEmpty ||
         selectedGender.value.isEmpty ||
         selectedServices.isEmpty) {
+
+      // More detailed error message to help debug
+      String errorMessage = 'Please fill all fields and select at least one service: ';
+      if (nameController.text.isEmpty) errorMessage += 'Name is empty. ';
+      if (emailController.text.isEmpty) errorMessage += 'Email is empty. ';
+      if (phoneNumber.value.isEmpty) errorMessage += 'Phone is empty. ';
+      if (addressController.text.isEmpty) errorMessage += 'Address is empty. ';
+      if (selectedGender.value.isEmpty) errorMessage += 'Gender is not selected. ';
+      if (selectedServices.isEmpty) errorMessage += 'No services selected. ';
+
       Get.snackbar(
         'Error',
-        'Please fill all fields and select at least one service',
-        snackPosition: SnackPosition.BOTTOM,
+        errorMessage,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.purple.withValues(alpha:.8),
+        colorText: Colors.white
       );
       return;
     }
@@ -318,8 +354,7 @@ class RegistrationController extends GetxController {
     try {
       String customerId;
 
-      // Check if customer exists by phone number
-      Customer? existingCustomer = await checkCustomerExists(phoneController.text);
+      Customer? existingCustomer = await checkCustomerExists(phoneNumber.value);
 
       if (existingCustomer != null) {
         // Customer exists, update their info
@@ -336,7 +371,7 @@ class RegistrationController extends GetxController {
           await _firestore.collection('customer').doc(docId).update({
             'name': nameController.text,
             'email': emailController.text,
-            'phone': phoneController.text,
+            'phone': phoneNumber.value,
             'address': addressController.text,
             'gender': selectedGender.value,
             'updated_at': FieldValue.serverTimestamp(),
@@ -354,7 +389,7 @@ class RegistrationController extends GetxController {
           'id': nextId, // Store the sequential numeric ID as a field
           'name': nameController.text,
           'email': emailController.text,
-          'phone': phoneController.text,
+          'phone': phoneNumber.value,
           'address': addressController.text,
           'gender': selectedGender.value,
           'created_at': FieldValue.serverTimestamp(),
