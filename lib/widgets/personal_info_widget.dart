@@ -8,8 +8,6 @@ class PersonalInfoWidget extends StatelessWidget {
 
   PersonalInfoWidget({required this.controller});
 
-  String CountryCode = "";
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -30,7 +28,6 @@ class PersonalInfoWidget extends StatelessWidget {
         ),
         SizedBox(height: 16),
 
-        // Full Name
         TextField(
           controller: controller.nameController,
           decoration: InputDecoration(
@@ -58,7 +55,6 @@ class PersonalInfoWidget extends StatelessWidget {
         ),
         SizedBox(height: 16),
 
-        // International Phone Number using intl_phone_field
         IntlPhoneField(
           controller: controller.phoneController,
           decoration: InputDecoration(
@@ -68,14 +64,13 @@ class PersonalInfoWidget extends StatelessWidget {
             ),
             contentPadding: EdgeInsets.symmetric(vertical: 16),
           ),
-          initialCountryCode: 'IN', // Default country code
+          initialCountryCode: 'IN',
           onChanged: (phone) {
             controller.phoneNumber.value = phone.completeNumber;
           },
         ),
         SizedBox(height: 16),
 
-        // Address
         TextField(
           controller: controller.addressController,
           maxLines: 3,
@@ -96,7 +91,6 @@ class PersonalInfoWidget extends StatelessWidget {
         ),
         SizedBox(height: 16),
 
-        // Gender
         Text('Gender', style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
         Row(

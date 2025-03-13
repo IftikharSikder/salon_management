@@ -37,7 +37,6 @@ class RegistrationController extends GetxController {
     super.onInit();
     fetchServices();
 
-    // Set up listener for search input changes
     searchController.addListener(() {
       search(searchController.text);
     });
@@ -123,7 +122,6 @@ class RegistrationController extends GetxController {
     totalAmount.value = 0.0;
 
     if (selectedGender.value.toLowerCase() == 'male') {
-      // Create a new list with fresh copies to avoid reference issues
       filteredServices.value = maleServices.map((service) => Service(
         id: service.id,
         name: service.name,
@@ -133,7 +131,6 @@ class RegistrationController extends GetxController {
 
       print("Male services assigned: ${filteredServices.length}");
     } else if (selectedGender.value.toLowerCase() == 'female') {
-      // Create a new list with fresh copies to avoid reference issues
       filteredServices.value = femaleServices.map((service) => Service(
         id: service.id,
         name: service.name,
@@ -148,27 +145,24 @@ class RegistrationController extends GetxController {
   Future<void> fetchServices() async {
     isLoading.value = true;
     try {
-      // Fetch male services
       QuerySnapshot maleSnapshot = await _firestore.collection('services_male').get();
       maleServices.value = maleSnapshot.docs
           .map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        // Use the document ID as the service ID
         return Service(
-          id: doc.id, // Changed from data['id'] to doc.id
+          id: doc.id,
           name: data['s_name'] ?? '',
           price: double.tryParse(data['price']?.toString() ?? '0') ?? 0.0,
         );
       })
           .toList();
 
-      // Fetch female services
       QuerySnapshot femaleSnapshot = await _firestore.collection('services_female').get();
       femaleServices.value = femaleSnapshot.docs
           .map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         return Service(
-          id: doc.id, // Changed from data['id'] to doc.id
+          id: doc.id,
           name: data['s_name'] ?? '',
           price: double.tryParse(data['price']?.toString() ?? '0') ?? 0.0,
         );
@@ -231,7 +225,6 @@ class RegistrationController extends GetxController {
     totalAmount.value = 0.0;
   }
 
-  // Check if customer exists by phone number
   Future<Customer?> checkCustomerExists(String phone) async {
     try {
       QuerySnapshot snapshot = await _firestore.collection('customer')
@@ -241,10 +234,9 @@ class RegistrationController extends GetxController {
       if (snapshot.docs.isNotEmpty) {
         var doc = snapshot.docs.first;
         var data = doc.data() as Map<String, dynamic>;
-        // Make sure we use the 'id' field from the customer document
         return Customer.fromJson({
           ...data,
-          'id': data['id'] ?? '' // Use the stored numeric ID, not the document ID
+          'id': data['id'] ?? ''
         });
       }
       return null;
@@ -254,20 +246,17 @@ class RegistrationController extends GetxController {
     }
   }
 
-  // Generate next customer ID
   Future<String> getNextCustomerId() async {
     try {
-      // Get all customers sorted by numeric ID in descending order
       QuerySnapshot snapshot = await _firestore.collection('customer')
           .orderBy('id', descending: true)
           .limit(1)
           .get();
 
       if (snapshot.docs.isEmpty) {
-        return '1'; // First customer
+        return '1';
       }
 
-      // Get the highest ID and increment by 1
       var highestDoc = snapshot.docs.first;
       var data = highestDoc.data() as Map<String, dynamic>;
       var highestId = data['id'];
@@ -284,24 +273,20 @@ class RegistrationController extends GetxController {
       return (nextId + 1).toString();
     } catch (e) {
       print('Error generating next customer ID: $e');
-      // Fallback to timestamp-based ID if we can't determine the next ID
       return DateTime.now().millisecondsSinceEpoch.toString();
     }
   }
 
-  // Add services taken to firestore
   Future<void> addServicesTaken(String customerId) async {
     try {
-      // Create a comma-separated list of service names
       String servicesList = selectedServices
           .map((service) => service.name)
           .join(', ');
 
       print('Adding services taken for customer ID: $customerId');
 
-      // Add record to services_taken collection with the customerId in the 'id' field
       await _firestore.collection('services_taken').add({
-        'id': customerId, // This should be the numeric customer ID
+        'id': customerId,
         't_cost': totalAmount.value,
         'services': servicesList,
         'timestamp': FieldValue.serverTimestamp(),
@@ -310,19 +295,11 @@ class RegistrationController extends GetxController {
       print('Services taken added successfully for customer: $customerId');
     } catch (e) {
       print('Error adding services taken: $e');
-      throw e; // Re-throw to handle in calling function
+      throw e;
     }
   }
 
   Future<void> bookAppointment() async {
-    print("Booking appointment with:===============================================================================");
-    print("Name: ${nameController.text}");
-    print("Email: ${emailController.text}");
-    print("Phone: ${phoneNumber.value}");
-    print("Address: ${addressController.text}");
-    print("Gender: ${selectedGender.value}");
-    print("Selected services: ${selectedServices.length}");
-
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
         phoneNumber.value.isEmpty ||
@@ -330,7 +307,6 @@ class RegistrationController extends GetxController {
         selectedGender.value.isEmpty ||
         selectedServices.isEmpty) {
 
-      // More detailed error message to help debug
       String errorMessage = 'Please fill all fields and select at least one service: ';
       if (nameController.text.isEmpty) errorMessage += 'Name is empty. ';
       if (emailController.text.isEmpty) errorMessage += 'Email is empty. ';
@@ -357,10 +333,8 @@ class RegistrationController extends GetxController {
       Customer? existingCustomer = await checkCustomerExists(phoneNumber.value);
 
       if (existingCustomer != null) {
-        // Customer exists, update their info
         customerId = existingCustomer.id;
 
-        // We need to find the Firestore document ID using the customer ID field
         QuerySnapshot snapshot = await _firestore.collection('customer')
             .where('id', isEqualTo: customerId)
             .limit(1)
@@ -381,12 +355,11 @@ class RegistrationController extends GetxController {
           print('Error: Could not find document for customer ID: $customerId');
         }
       } else {
-        // Customer doesn't exist, create new with sequential ID
         String nextId = await getNextCustomerId();
         customerId = nextId;
 
         await _firestore.collection('customer').add({
-          'id': nextId, // Store the sequential numeric ID as a field
+          'id': nextId,
           'name': nameController.text,
           'email': emailController.text,
           'phone': phoneNumber.value,
@@ -397,7 +370,6 @@ class RegistrationController extends GetxController {
         print('Created new customer with ID: $nextId');
       }
 
-      // Add services taken record with the numeric customer ID
       await addServicesTaken(customerId);
 
       Get.snackbar(

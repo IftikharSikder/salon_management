@@ -65,7 +65,6 @@ class ServicesWidget extends StatelessWidget {
   Widget _buildServiceItem(service_models.Service service) {
     IconData serviceIcon;
 
-    // Determine icon based on service name
     if (service.name.toLowerCase().contains('haircut')) {
       serviceIcon = Icons.content_cut;
     } else if (service.name.toLowerCase().contains('color')) {
@@ -79,7 +78,7 @@ class ServicesWidget extends StatelessWidget {
     }
 
     return CheckboxListTile(
-      controlAffinity: ListTileControlAffinity.leading, // Move checkbox to the left
+      controlAffinity: ListTileControlAffinity.leading,
       title: Row(
         children: [
           Icon(serviceIcon, color: Color(0xFFE91E63), size: 20),
@@ -87,7 +86,7 @@ class ServicesWidget extends StatelessWidget {
           Text(service.name),
         ],
       ),
-      secondary: Text(  // Use secondary for the trailing widget in CheckboxListTile
+      secondary: Text(
         '\$${service.price.toStringAsFixed(0)}',
         style: TextStyle(
           fontWeight: FontWeight.bold,
